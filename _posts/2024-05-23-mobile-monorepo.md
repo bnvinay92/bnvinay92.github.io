@@ -6,9 +6,13 @@ We recently transitioned from a multi-repo to a monorepo for our ios and android
 
 ## Why Transition to a Monorepo?
 
-### 1. Reduce Toil
+#### Context
 
-Our team of iOS and android developers previously managed three separate repositories: android, iOS, and KMP (Kotlin Multiplatform). The KMP code streams view state objects representing the view tree of the screen that platforms render by mapping them to our in-house design library tokens (implemented with love using Compose and SwiftUI). This architecture means most contributions happen to the KMP repository first. Our multi-repo setup involved a cumbersome workflow for landing the simplest of changes:
+Our team of iOS and android developers previously managed three separate repositories: android, iOS, and KMP (Kotlin Multiplatform). At a high level, the KMP code streams view state objects representing the view tree of the screen that platforms (android and iOS) render by mapping them to our in-house design library tokens (implemented with love using Compose and SwiftUI). Some pain points with this multi-repo setup were:
+
+### Toil
+
+This architecture means most contributions happen to the KMP repository first. Our multi-repo setup involved a cumbersome workflow for landing the simplest of changes:
 
 - Developers make changes in the KMP repo and publish artifacts locally
 - They updated platform repos to point to the local artifact for testing.
@@ -17,24 +21,25 @@ Our team of iOS and android developers previously managed three separate reposit
 
 If there were bugs or changes requested from review it only gets worse. We needed to eliminate the ceremony of multiple builds and reviews around landing a single change.
 
-### 2. Shorter Lead Times
+### Long Lead Times
 
 As outlined above, KMP changes had to go through several steps before landing on platform repos. This delay increased our time to release and hotfix, which is crucial during major outages. There was no single commit we could revert confidently. By consolidating into a monorepo, KMP changes land on platforms immediately, reducing lead times and improving our ability to respond quickly to issues.
 
-### 2.5. Conflict Management
+### Conflict Management
 
-The probability of conflicts (both git and logical) scales exponentially with team size. With sixteen developers landing changes daily, it's a significant risk that's only multiplied by long lead times. By using a monorepo, we ensure that changes are integrated more frequently, reducing the chances of conflicts and making it easier to resolve them when they occur.
+The probability of logical conflicts scales exponentially with team size. With sixteen developers landing changes daily, it's a significant risk that's only multiplied by long lead times. By using a monorepo, we ensure that changes are integrated more frequently, reducing the chances of conflicts and making it easier to resolve them when they occur.
 
-### 3. Improved Locality
+### Lack of locality
 
-While the transition to a monorepo didn't change much for iOS locality, android developers experienced significant benefits. The unified repo enhances refactoring, debugging, and IDE support across android/KMP projects, making the development process smoother and more efficient.
+Multirepos degrades the experience of refactoring, debugging, and IDE support across android/KMP projects. Context switching adds up overtime. Unfortunately, xcode and Android Studio switching is still a problem when working on iOS code.
 
-### 4. Alternatives aren't appealing
+### Alternatives aren't appealing
 
 Monorepos do have their cons, namely:
 
 - CI build times and cost: This needs mitigation through optimization. More on this later.
 - Repo size: This is not a concern for our project
+- Git conflicts: Conflicts happen when teams don't coordinate on the work they're doing, and a monorepo forces that coordination, sooner rather than later. It's a feature, not a bug.
 
 But the alternatives aren't appealing:
 
@@ -47,8 +52,8 @@ But the alternatives aren't appealing:
 
 First, we created a new repo and moved all the code from the existing repos into it. The git subtree command proved very useful:
 
-```
-# In the new repo add current multirepos as remotes then:
+```bash
+# In the new repository
 git subtree pull --prefix=<kmp-directory-name> <kmp-repo-remote> <kmp-repo-main-branch>
 git subtree pull --prefix=<android-directory-name> <android-repo-remote> <android-repo-main-branch>
 git subtree pull --prefix=<ios-directory-name> <ios-repo-remote> <ios-repo-main-branch>
@@ -57,20 +62,22 @@ git subtree pull --prefix=<ios-directory-name> <ios-repo-remote> <ios-repo-main-
 With this each repo will be pulled into the new repository as a subdirectory with the given name, and the history of the subdirectories will be preserved.
 You can use the same command to transfer over open pull requests by changing the branch name.
 
-### Gradle Composite Build
+### Compose Gradle builds
 
 We used Gradle's composite build feature to combine android and KMP building into a single step, simplifying the build process. Here is an example of how this is done in the android `settings.gradle.kts`:
 
 ```kotlin
 includeBuild("../your-kmp-gradle-project") {
     dependencySubstitution {
-        substitute(module("com.#careem.rides.engine:rides-di"))
+        substitute(module("com.careem.rides.engine:rides-di"))
             .using(project(":rides:di"))
     }
 }
 ```
 
-We could have merged the two into a single Gradle project but this would have slowed down ios developers with android build configuration. It's also a big change that makes it harder to revert if things go wrong. We did not want to duplicate gradle-wrapper.properties files though since we point to an in house gradle distribution so we symlinked them. FYI, this won't work on Windows machines.
+We could have merged the two into a single Gradle project but this would have slowed down ios builds with android build configuration. It's also a big change that makes it harder to revert if things go wrong.
+
+We did not want to duplicate our custom build logic so we extracted them to a separate gradle project. This approach also means you have two separate gradle wrappers with their own gradle-wrapper.properties files which we did not want to duplicate (we point to an in house gradle distribution), so we symlinked them. FYI, this won't work on Windows machines.
 
 ### Kotlin Native compilation filters
 
@@ -91,6 +98,8 @@ extensions.configure(KotlinMultiplatformExtension::class) {
     }
 }
 ```
+
+This also helped significantly reduce CI build times.
 
 ### CI Workflow Optimization
 
