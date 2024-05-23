@@ -8,7 +8,7 @@ We recently transitioned from a multi-repo to a monorepo for our ios and android
 
 #### Context
 
-Our team of iOS and android developers previously managed three separate repositories: android, iOS, and KMP (Kotlin Multiplatform). At a high level, the KMP code streams view state objects representing the view tree of the screen that platforms (android and iOS) render by mapping them to our in-house design library tokens (implemented with love using Compose and SwiftUI). Some pain points with this multi-repo setup were:
+Our team of iOS and android developers previously managed three separate repositories: android, iOS, and KMP (Kotlin Multiplatform). At a high level, the KMP code streams view state objects representing the view tree of the screen that platforms render by mapping them to our in-house design library tokens (implemented with love using Compose and SwiftUI). Some pain points with this multi-repo setup were:
 
 ### Toil
 
