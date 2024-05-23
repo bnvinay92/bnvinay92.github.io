@@ -65,7 +65,7 @@ You can use the same command to transfer over open pull requests by changing the
 
 ### Compose Gradle builds
 
-We used Gradle's composite build feature to combine android and KMP building into a single step, simplifying the build process. Here is an example of how this is done in the android `settings.gradle.kts`:
+We used Gradle's [composite build](https://docs.gradle.org/current/userguide/composite_builds.html) feature to combine android and KMP building into a single step, simplifying the build process. Here is an example of how this is done in the android `settings.gradle.kts`:
 
 ```kotlin
 includeBuild("../your-kmp-gradle-project") {
