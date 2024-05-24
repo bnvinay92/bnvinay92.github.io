@@ -81,7 +81,7 @@ includeBuild("../your-kmp-gradle-project") {
 
 We could have merged the two into a single Gradle project but this would have slowed down ios builds with android build configuration. It's also a big change that makes it harder to revert if things go wrong.
 
-We did not want to duplicate our custom build logic so we extracted them to a separate gradle project. This approach also means you have two separate gradle wrappers with their own gradle-wrapper.properties files which we also did not want to duplicate (we point to an in house gradle distribution), so we symlinked them. FYI, this won't work on Windows machines.
+We did not want to duplicate our custom build logic so we extracted them to a separate gradle project. This approach also means you have two separate gradle wrappers with their own gradle-wrapper.properties files which we also did not want to duplicate (we point to an in house gradle distribution), so we symlinked them. FYI, symlinking won't work on Windows machines.
 
 ### Kotlin Native compilation filters
 
