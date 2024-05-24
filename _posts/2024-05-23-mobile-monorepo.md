@@ -1,14 +1,14 @@
 # Kotlin Mobile Monorepo
 
-We recently transitioned from a multi-repo to a monorepo for our ios and android mobile application. This post will go over why and how we did this.
+We recently migrated from a multi-repo to a monorepo for our ios and android mobile application. This post will go over why and how we did this.
 
 ------
 
-## Why Transition to a Monorepo?
+## Why Migrate to a Monorepo?
 
 #### Context
 
-Our team of iOS and android developers previously managed three separate repositories: android, iOS, and KMP (Kotlin Multiplatform). At a high level, the KMP code streams view state objects representing the view tree of the screen that platforms render by mapping them to our in-house design library tokens (implemented with love using Compose and SwiftUI). Some pain points with this multi-repo setup were:
+Our team of iOS and android developers previously managed three separate repositories: android, iOS, and KMP (Kotlin Multiplatform). At a high level, the KMP code streams view state objects representing the view tree of the screen that platforms render by mapping to our in-house design library tokens (implemented with love using Compose and SwiftUI). Some pain points with this multi-repo setup were:
 
 ### Toil
 
@@ -18,36 +18,37 @@ Most contributions touch KMP code due to our architecture. To even land the simp
 - We update platform repos to point to the local artifact for testing
 - After raising and merging the PR on KMP, we release artifacts to our internal artifactory
 - Finally, we raise PRs on platform repos that update artifact versions and make necessary changes to consume the new artifact
+- If there were bugs or changes requested from review, or if conflicting changes were made before you landed your changes you loop back from the start
 
-![Workflow](/assets/multirepo_workflow.png)
+![multirepo workflow](/assets/multirepo_workflow.png)
 
-If there were bugs or changes requested from review, or if conflicting changes were made before you landed your changes you loop back from the start. We needed to eliminate the ceremony of multiple builds and reviews around landing a single change.
+We needed to eliminate the ceremony of multiple builds and reviews around landing a single change.
 
 ### Long Lead Times
 
 As outlined above, KMP changes had to go through several steps before landing on platform repos. This delay increased our time to release and hotfix, which is crucial during major outages. There isn't a single commit you can confidently revert.
-By consolidating into a monorepo, KMP changes land on platforms immediately, reducing lead times and improving our ability to respond quickly to issues.
+By consolidating into a monorepo, KMP changes land on platforms immediately, reducing the time to detect and resolve issues.
 
-### Conflict Management
+![conflict graph](/assets/repo_conflicts.png)
 
-The probability of logical conflicts scales exponentially with team size. With sixteen developers landing changes daily, it's a significant risk that's only multiplied by long lead times. By using a monorepo, we ensure that changes are integrated more frequently, reducing the chances of conflicts and making it easier to resolve them when they occur.
+The probability of logical conflicts scales exponentially with team size. With sixteen developers landing changes daily, it becomes a significant risk that's only multiplied by long lead times. A monorepo ensures that changes land sooner, reducing the time to detection and probability of conflicts.
 
 ### Lack of locality
 
-Multirepos degrades the experience of refactoring, debugging, and IDE support across android/KMP projects. Context switching adds up overtime. Unfortunately, switching between Xcode and Android Studio would not be solved by a monorepo.
+A multirepo setup degrades the experience of refactoring, debugging, and IDE support across android/KMP projects. IDE switching adds up overtime. Unfortunately, switching between Xcode and Android Studio would not be solved by a monorepo.
 
-### Alternatives aren't appealing
+### Alternatives
 
-Monorepos do have their cons, namely:
-
-- CI build times and cost: This needs mitigation through optimization. More on this later.
+Monorepos don't come for free:
+ 
+- Requires teamwork: Developers may not be familiar with both platforms and might require to pair to land certain changes. You might also see more git conflicts if developers don't coordinate their work. Compared to a multirepo though, you force that coordination sooner rather than later which is a good thing imo
+- CI build times and cost: This needs mitigation through optimization. More on this later
 - Repo size: This is not a concern for our project
-- Git conflicts: Conflicts happen when teams don't coordinate on the work they're doing, and a monorepo forces that coordination, sooner rather than later. It's a feature, not a bug.
 
-The alternatives:
+But the alternatives aren't appealing:
 
-- Submodules: Just no. We'd be increasing the complexity of our workflow with the same cons of a multi-repo setup.
-- Automating platform PRs: This would be a band-aid solution that doesn't address the root cause of our problems. Platforms would still require changes to be made, and we'd still have to deal with the long lead times and conflicts.
+- Submodules: Just no, you'd be replacing a version bump with a submodule update. We'd be maintaining the complexity of our workflow and dealing with the cons of both multirepos and monorepos
+- Automating platform PRs: This would be a band-aid solution that doesn't address the root cause of our problems. Platform PRs would still require changes to be made, and we'd still have to deal with long lead times and conflicts.
 
 ## What did we do
 
@@ -109,14 +110,9 @@ On CI we target only the simulator architecture for testing since we have no arc
 Running all tests and builds for every change would be too expensive and time-consuming, so we optimized our CI workflows to be conditional based on the files that have changed.
 
 One way to structure this would be to run a workflow that outputs JVM artifacts and the XCFramework, and then fork into platform workflows based on the diffs. This approach doesn't exploit the fact that android workflows don't need to run on M1 machines, and that Kotlin Native compilation takes longer.
-Instead, we decided to fork the workflows from the start, which lets us use a Linux machine for the android workflow, and an M1 machine only for iOS. KMP tests run on the Linux machine right before android to sync up pipeline finish times. This also saves time by avoiding the deployment and retrieval of artifacts. It looks something like this:
+Instead, we decided to fork the workflows from the start, which lets us use a Linux machine for the android workflow, and an M1 machine only for iOS. KMP tests run on the Linux machine right before android to sync up pipeline finish times. This also saves time by avoiding the deployment and retrieval of artifacts in the pipeline. Each platform pipeline looks something like this:
 
-```bash
-    android : Build KMP jvm jars --> Run KMP jvm tests and Sonar if KMP files changed --> Build APK --> Run android tests --> Run lint and sonar if android files changed
-    
-    ios     : Build KMP XCframework --> Run KMP iosSimulatorArm64 tests if KMP files changed --> Build Swift package --> Run ios tests --> Run ios lint and sonar if ios files changed
-    
-```
+![ci](/assets/ci.png)
 
 We were consuming ~75 bitrise credits per pull request on our KMP repo, and we're at ~85 credits per PR on the monorepo. This was surprising at first but given that the bulk of the work time was spent in XCFramework compilation and the cost of M1 machines it makes sense.
 Granted we're missing a verification or two that still needs to be moved over and will add some time, it's a small price to pay for the benefits we've gained.
