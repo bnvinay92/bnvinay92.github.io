@@ -42,6 +42,7 @@ A multirepo setup degrades the experience of refactoring, debugging, and IDE sup
 Monorepos don't come for free:
  
 - Requires teamwork: Developers may not be familiar with both platforms and might require to pair to land certain changes. You might also see more git conflicts if developers don't coordinate their work. Compared to a multirepo though, you force that coordination sooner rather than later which is a good thing imo
+- Feature toggles: Larger features would need to be gated behind a toggle to avoid huge pull requests or if you want to still raise separate PRs for platforms. This might add complexity to your codebase but we toggle most of our features today anyway.
 - CI build times and cost: This needs mitigation through optimization. More on this later
 - Repo size: This is not a concern for our project
 
