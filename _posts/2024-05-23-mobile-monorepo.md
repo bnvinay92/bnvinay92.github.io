@@ -12,14 +12,16 @@ Our team of iOS and android developers previously managed three separate reposit
 
 ### Toil
 
-This architecture means most contributions happen to the KMP repository first. Our multi-repo setup involved a cumbersome workflow for landing the simplest of changes:
+Most contributions touch KMP code due to our architecture. To even land the simplest change, the workflow was:
 
 - Developers make changes in the KMP repo and publish artifacts locally
-- They updated platform repos to point to the local artifact for testing.
-- After raising and merging the PR on KMP, they released artifacts to our Artifactory instance.
-- Finally, they raised PRs on platform repos to update artifact versions and made necessary changes.
+- We update platform repos to point to the local artifact for testing
+- After raising and merging the PR on KMP, we release artifacts to our internal artifactory
+- Finally, we raise PRs on platform repos that update artifact versions and make necessary changes to consume the new artifact
 
-If there were bugs or changes requested from review it only gets worse. We needed to eliminate the ceremony of multiple builds and reviews around landing a single change.
+![Workflow](/assets/multirepo_workflow.png)
+
+If there were bugs or changes requested from review, or if conflicting changes were made before you landed your changes you loop back from the start. We needed to eliminate the ceremony of multiple builds and reviews around landing a single change.
 
 ### Long Lead Times
 
