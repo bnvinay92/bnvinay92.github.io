@@ -12,7 +12,7 @@ Our team of iOS and android developers previously managed three separate reposit
 
 ### Toil
 
-Most contributions touch KMP code due to our architecture. To even land the simplest change, the workflow was:
+Most contributions touch KMP code due to our architecture. To even land the simplest change the workflow was:
 
 - Developers make changes in the KMP repo and publish artifacts locally
 - We update platform repos to point to the local artifact for testing
