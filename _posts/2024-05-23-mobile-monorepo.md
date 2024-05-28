@@ -1,6 +1,6 @@
 # Kotlin Mobile Monorepo
 
-We recently migrated from a multi-repo to a monorepo for our ios and android mobile application. This post will go over why and how we did this.
+We recently migrated from a multi-repo to a monorepo for our ios and android ridehailing mobile applications. This post will go over why and how we did this.
 
 ------
 
